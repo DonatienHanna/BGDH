@@ -1,0 +1,30 @@
+# Environnement virtuel
+venv/
+ENV/
+
+# Fichiers de cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Fichiers locaux Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+
+# Secrets et configurations locales
+.env
+.env.local
+local_settings.py
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

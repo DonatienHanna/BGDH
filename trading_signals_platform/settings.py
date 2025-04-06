@@ -36,7 +36,6 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-# Ajoutez vos applications au INSTALLED_APPS
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -47,6 +46,8 @@ INSTALLED_APPS = [
     
     # Third-party apps
     'rest_framework',
+    'rest_framework.authtoken',
+    'django_celery_beat',
     
     # Custom apps
     'users',
@@ -54,7 +55,6 @@ INSTALLED_APPS = [
     'signals',
     'dashboard',
 ]
-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -158,14 +158,6 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100,
 }
 
-# Assurez-vous d'avoir 'rest_framework.authtoken' dans INSTALLED_APPS
-INSTALLED_APPS = [
-    # ... autres applications
-    'rest_framework',
-    'rest_framework.authtoken',
-    # ... vos applications
-]
-
 # Configurations Celery
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
@@ -174,19 +166,11 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 
-# Celery Beat settings
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-
-# Ensuite vous pouvez mettre à jour CELERY_BEAT_SCHEDULE
-CELERY_BEAT_SCHEDULE.update({
-    # Vos tâches planifiées ici
-})
-
-# Initialisez CELERY_BEAT_SCHEDULE avant de l'utiliser
 CELERY_BEAT_SCHEDULE = {}
 
-# Ajoutez django_celery_beat à vos applications installées
-INSTALLED_APPS += ['django_celery_beat']
+CELERY_BEAT_SCHEDULE.update({
+    # vos tâches planifiées
+})
 
 # Clé API Alpha Vantage
 ALPHA_VANTAGE_API_KEY = env('ALPHA_VANTAGE_API_KEY', default='073XRZ4KX6ENI78E')

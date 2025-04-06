@@ -135,3 +135,108 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
+
+
+# Ajouter la configuration REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100,
+}
+
+# Assurez-vous d'avoir 'rest_framework.authtoken' dans INSTALLED_APPS
+INSTALLED_APPS = [
+    # ... autres applications
+    'rest_framework',
+    'rest_framework.authtoken',
+    # ... vos applications
+]
+
+# Celery settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+# Celery Beat settings
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Ajoutez django_celery_beat à vos applications installées
+INSTALLED_APPS += ['django_celery_beat']
+
+# Clé API Alpha Vantage
+ALPHA_VANTAGE_API_KEY = 'votre_clé_api'  # Remplacez par votre clé API Alpha Vantage
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'market_data': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'signals': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# Configurations pour les tâches périodiques
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE.update({
+    'generate-bollinger-bands-signals': {
+        'task': 'signals.tasks.generate_bollinger_bands_signals_task',
+        'schedule': crontab(minute='*/20'),  # Toutes les 20 minutes
+    },
+    'generate-williams-r-signals': {
+        'task': 'signals.tasks.generate_williams_r_signals_task',
+        'schedule': crontab(minute='*/15'),  # Toutes les 15 minutes
+    },
+    'generate-stochastic-signals': {
+        'task': 'signals.tasks.generate_stochastic_signals_task',
+        'schedule': crontab(minute='*/25'),  # Toutes les 25 minutes
+    },
+})

@@ -1,0 +1,145 @@
+<!-- dashboard/templates/dashboard/home.html -->
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Accueil - Système d'Analyse et de Signaux de Trading{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Tableau de bord</h2>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Derniers signaux générés</h5>
+            </div>
+            <div class="card-body">
+                {% if latest_signals %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Paire</th>
+                                    <th>Signal</th>
+                                    <th>Stratégie</th>
+                                    <th>Prix d'entrée</th>
+                                    <th>Timeframe</th>
+                                    <th>Confiance</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for signal in latest_signals %}
+                                    <tr class="signal-{{ signal.signal_type|lower }}">
+                                        <td>{{ signal.pair.symbol }}</td>
+                                        <td>
+                                            {% if signal.signal_type == 'BUY' %}
+                                                <span class="badge bg-success">Achat</span>
+                                            {% elif signal.signal_type == 'SELL' %}
+                                                <span class="badge bg-danger">Vente</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Attente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ signal.strategy.name }}</td>
+                                        <td>{{ signal.entry_price }}</td>
+                                        <td>{{ signal.get_timeframe_display }}</td>
+                                        <td>
+                                            {% if signal.confidence >= 0.8 %}
+                                                <span class="confidence-high">{{ signal.confidence|floatformat:2 }}</span>
+                                            {% elif signal.confidence >= 0.6 %}
+                                                <span class="confidence-medium">{{ signal.confidence|floatformat:2 }}</span>
+                                            {% else %}
+                                                <span class="confidence-low">{{ signal.confidence|floatformat:2 }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ signal.timestamp|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{% url 'signals_list' %}" class="btn btn-primary">Voir tous les signaux</a>
+                {% else %}
+                    <p>Aucun signal n'a encore été généré.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Performance des paires</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="pairsPerformanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Paires actives</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for pair in currency_pairs %}
+                        <a href="{% url 'pair_detail' pair.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ pair.symbol }}
+                            <span class="badge bg-primary rounded-pill">{{ pair.prices.count }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Stratégies</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for strategy in strategies %}
+                        <a href="{% url 'strategy_detail' strategy.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ strategy.name }}
+                            <span class="badge bg-info rounded-pill">{{ strategy.signals.count }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique de performance des paires
+        const performanceCtx = document.getElementById('pairsPerformanceChart').getContext('2d');
+        
+        // Vous devrez créer une vue qui renvoie ces données au format JSON
+        fetch('{% url "api_pair_performance" %}')
+            .then(response => response.json())
+            .then(data => {
+                new Chart(performanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: data.datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Évolution du prix sur 7 jours'
+                            }
+                        }
+                    }
+                });
+            });
+    });
+</script>
+{% endblock %}

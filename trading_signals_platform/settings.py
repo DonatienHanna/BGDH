@@ -243,3 +243,8 @@ CELERY_BEAT_SCHEDULE.update({
         'args': (None, '1d'),  # Tous les pairs, timeframe 1d
     },
 })
+
+# Configuration de la connexion et déconnexion
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard_home'
+LOGOUT_REDIRECT_URL = 'login'

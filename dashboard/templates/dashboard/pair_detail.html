@@ -1,0 +1,232 @@
+<!-- dashboard/templates/dashboard/pair_detail.html -->
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{{ pair.symbol }} - Détail{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2>{{ pair.symbol }} - Analyse détaillée</h2>
+        <div class="badge bg-secondary">{{ pair.base_currency.name }}/{{ pair.quote_currency.name }}</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Graphique des prix</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary timeframe-btn" data-timeframe="1h">1H</button>
+                    <button class="btn btn-sm btn-outline-primary timeframe-btn" data-timeframe="4h">4H</button>
+                    <button class="btn btn-sm btn-outline-primary timeframe-btn active" data-timeframe="1d">1D</button>
+                    <button class="btn btn-sm btn-outline-primary timeframe-btn" data-timeframe="1w">1W</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="priceChart" height="400"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Indicateurs techniques</h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="indicatorTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="bollinger-tab" data-bs-toggle="tab" data-bs-target="#bollinger" type="button" role="tab">Bollinger</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="williams-tab" data-bs-toggle="tab" data-bs-target="#williams" type="button" role="tab">Williams %R</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="stochastic-tab" data-bs-toggle="tab" data-bs-target="#stochastic" type="button" role="tab">Stochastique</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="combined-tab" data-bs-toggle="tab" data-bs-target="#combined" type="button" role="tab">Combiné</button>
+                    </li>
+                </ul>
+                <div class="tab-content p-3" id="indicatorTabsContent">
+                    <div class="tab-pane fade show active" id="bollinger" role="tabpanel">
+                        <canvas id="bollingerChart" height="250"></canvas>
+                    </div>
+                    <div class="tab-pane fade" id="williams" role="tabpanel">
+                        <canvas id="williamsChart" height="250"></canvas>
+                    </div>
+                    <div class="tab-pane fade" id="stochastic" role="tabpanel">
+                        <canvas id="stochasticChart" height="250"></canvas>
+                    </div>
+                    <div class="tab-pane fade" id="combined" role="tabpanel">
+                        <div class="alert alert-info">
+                            <h6>Stratégie combinée</h6>
+                            <p>Cette stratégie génère des signaux basés sur les 3 indicateurs:</p>
+                            <ul>
+                                <li>Bollinger Bands (27, 2.7, 0)</li>
+                                <li>Williams %R (75, -80/-20)</li>
+                                <li>Stochastique (40, 20, 15, 20/80)</li>
+                            </ul>
+                        </div>
+                        <canvas id="combinedChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Derniers signaux pour {{ pair.symbol }}</h5>
+            </div>
+            <div class="card-body">
+                {% if latest_signals %}
+                    <div class="list-group">
+                        {% for signal in latest_signals %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6>
+                                        {% if signal.signal_type == 'BUY' %}
+                                            <span class="badge bg-success">Achat</span>
+                                        {% elif signal.signal_type == 'SELL' %}
+                                            <span class="badge bg-danger">Vente</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Attente</span>
+                                        {% endif %}
+                                        {{ signal.strategy.name }}
+                                    </h6>
+                                    <small>{{ signal.timestamp|date:"d/m H:i" }}</small>
+                                </div>
+                                <p class="mb-1">Prix: {{ signal.entry_price|floatformat:4 }}</p>
+                                <p class="mb-1">
+                                    Stop Loss: {{ signal.stop_loss|floatformat:4 }} | 
+                                    Take Profit: {{ signal.take_profit|floatformat:4 }}
+                                </p>
+                                <small>Confiance: {{ signal.confidence|floatformat:2 }}</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Aucun signal récent pour cette paire.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Statistiques</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <th>Prix actuel</th>
+                            <td>{{ latest_price.close_price|floatformat:4 }}</td>
+                        </tr>
+                        <tr>
+                            <th>Variation 24h</th>
+                            <td class="{% if daily_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ daily_change|floatformat:2 }}%
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Volume 24h</th>
+                            <td>{{ daily_volume|floatformat:0 }}</td>
+                        </tr>
+                        <tr>
+                            <th>Signaux d'achat</th>
+                            <td>{{ buy_signals_count }}</td>
+                        </tr>
+                        <tr>
+                            <th>Signaux de vente</th>
+                            <td>{{ sell_signals_count }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Générer un signal</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'generate_signal' pair.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="strategySelect" class="form-label">Stratégie</label>
+                        <select class="form-select" id="strategySelect" name="strategy">
+                            <option value="combined">Stratégie Combinée</option>
+                            <option value="bollinger">Bollinger Bands</option>
+                            <option value="williams">Williams %R</option>
+                            <option value="stochastic">Stochastique</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="timeframeSelect" class="form-label">Timeframe</label>
+                        <select class="form-select" id="timeframeSelect" name="timeframe">
+                            <option value="1h">1 Heure</option>
+                            <option value="4h">4 Heures</option>
+                            <option value="1d">1 Jour</option>
+                            <option value="1w">1 Semaine</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Générer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configuration des boutons de timeframe
+        const timeframeBtns = document.querySelectorAll('.timeframe-btn');
+        timeframeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                timeframeBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                loadChartData(this.dataset.timeframe);
+            });
+        });
+
+        // Charger les données initiales
+        loadChartData('1d');
+
+        function loadChartData(timeframe) {
+            fetch(`{% url "api_pair_chart_data" pair.id %}?timeframe=${timeframe}`)
+                .then(response => response.json())
+                .then(data => {
+                    updatePriceChart(data.price_data);
+                    updateBollingerChart(data.bollinger_data);
+                    updateWilliamsChart(data.williams_data);
+                    updateStochasticChart(data.stochastic_data);
+                    updateCombinedChart(data.combined_data);
+                });
+        }
+
+        // Fonctions de mise à jour des graphiques
+        function updatePriceChart(data) {
+            // Implémentation pour mettre à jour le graphique des prix
+        }
+
+        function updateBollingerChart(data) {
+            // Implémentation pour mettre à jour le graphique Bollinger
+        }
+
+        function updateWilliamsChart(data) {
+            // Implémentation pour mettre à jour le graphique Williams %R
+        }
+
+        function updateStochasticChart(data) {
+            // Implémentation pour mettre à jour le graphique Stochastique
+        }
+
+        function updateCombinedChart(data) {
+            // Implémentation pour mettre à jour le graphique combiné
+        }
+    });
+</script>
+{% endblock %}

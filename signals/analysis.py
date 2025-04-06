@@ -463,3 +463,210 @@ class SignalGenerator:
         except Exception as e:
             print(f"Error generating Stochastic signals: {str(e)}")
             return None
+        
+    @staticmethod
+    def generate_combined_strategy_signals(pair_symbol, timeframe='1h'):
+        """
+        Génère des signaux basés sur une combinaison de Bollinger Bands, Williams %R et Stochastic
+        
+        Conditions d'achat:
+            1. Le prix touche ou passe sous la bande inférieure de Bollinger
+            2. Williams %R en dessous de -80
+            3. Stochastique croise ses lignes en dessous du niveau 20
+            
+        Conditions de vente:
+            1. Le prix touche ou passe au-dessus de la bande supérieure de Bollinger
+            2. Williams %R au-dessus de -20
+            3. Stochastique croise ses lignes au-dessus du niveau 80
+        
+        Args:
+            pair_symbol (str): Symbole de la paire
+            timeframe (str): Intervalle de temps ('1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w', '1mo')
+        
+        Returns:
+            dict: Dernier signal généré
+        """
+        try:
+            # Définir les paramètres des indicateurs selon les spécifications
+            bb_period = 27
+            bb_deviation = 2.7
+            bb_shift = 0
+            
+            williams_period = 75
+            williams_oversold = -80
+            williams_overbought = -20
+            
+            stoch_k_period = 40
+            stoch_d_period = 20
+            stoch_slowing = 15
+            stoch_oversold = 20
+            stoch_overbought = 80
+            
+            # Récupérer suffisamment de données historiques pour calculer tous les indicateurs
+            min_periods = max(bb_period, williams_period, stoch_k_period + stoch_d_period + stoch_slowing) + 20
+            df = SignalGenerator.get_price_data(pair_symbol, timeframe=timeframe, limit=min_periods)
+            
+            if df is None or len(df) < min_periods:
+                return None
+            
+            # Calculer les bandes de Bollinger
+            bb = TechnicalIndicators.calculate_bollinger_bands(
+                df['close'], bb_period, bb_deviation, bb_shift
+            )
+            df['bb_middle'] = bb['middle_band']
+            df['bb_upper'] = bb['upper_band']
+            df['bb_lower'] = bb['lower_band']
+            
+            # Calculer le Williams %R
+            df['williams_r'] = TechnicalIndicators.calculate_williams_r(
+                df['high'], df['low'], df['close'], williams_period
+            )
+            
+            # Calculer le Stochastique
+            stoch = TechnicalIndicators.calculate_stochastic(
+                df['high'], df['low'], df['close'], stoch_k_period, stoch_d_period, stoch_slowing
+            )
+            df['stoch_k'] = stoch['k']
+            df['stoch_d'] = stoch['d']
+            
+            # Détecter les croisements du Stochastique
+            df['stoch_k_crosses_d_up'] = (df['stoch_k'] > df['stoch_d']) & (df['stoch_k'].shift(1) <= df['stoch_d'].shift(1))
+            df['stoch_k_crosses_d_down'] = (df['stoch_k'] < df['stoch_d']) & (df['stoch_k'].shift(1) >= df['stoch_d'].shift(1))
+            
+            # Conditions d'achat:
+            # 1. Le prix touche ou passe sous la bande inférieure de Bollinger (low <= lower band)
+            # 2. Williams %R en dessous de -80
+            # 3. Stochastique croise ses lignes en dessous du niveau 20
+            df['buy_condition'] = (
+                (df['low'] <= df['bb_lower']) &  # Prix touche ou passe sous la bande inférieure
+                (df['williams_r'] < williams_oversold) &  # Williams %R sous -80
+                (df['stoch_k_crosses_d_up']) &  # Croisement %K au-dessus de %D
+                (df['stoch_k'] < stoch_oversold) &  # %K sous le niveau 20
+                (df['stoch_d'] < stoch_oversold)  # %D sous le niveau 20
+            )
+            
+            # Conditions de vente:
+            # 1. Le prix touche ou passe au-dessus de la bande supérieure de Bollinger (high >= upper band)
+            # 2. Williams %R au-dessus de -20
+            # 3. Stochastique croise ses lignes au-dessus du niveau 80
+            df['sell_condition'] = (
+                (df['high'] >= df['bb_upper']) &  # Prix touche ou passe au-dessus de la bande supérieure
+                (df['williams_r'] > williams_overbought) &  # Williams %R au-dessus de -20
+                (df['stoch_k_crosses_d_down']) &  # Croisement %K en dessous de %D
+                (df['stoch_k'] > stoch_overbought) &  # %K au-dessus du niveau 80
+                (df['stoch_d'] > stoch_overbought)  # %D au-dessus du niveau 80
+            )
+            
+            # Générer les signaux
+            df['signal'] = 0  # 0 = pas de signal, 1 = achat, -1 = vente
+            df.loc[df['buy_condition'], 'signal'] = 1
+            df.loc[df['sell_condition'], 'signal'] = -1
+            
+            # Récupérer les signaux récents (les 5 dernières périodes)
+            recent_signals = df.iloc[-5:]['signal'].tolist()
+            
+            # Déterminer le type de signal
+            signal_type = None
+            if 1 in recent_signals:
+                signal_type = 'BUY'
+            elif -1 in recent_signals:
+                signal_type = 'SELL'
+            
+            # Récupérer la dernière ligne de données
+            last_row = df.iloc[-1]
+            
+            # Préparer les informations à retourner
+            result = {
+                'pair': pair_symbol,
+                'timeframe': timeframe,
+                'close_price': float(last_row['close']),
+                'bb_upper': float(last_row['bb_upper']),
+                'bb_middle': float(last_row['bb_middle']),
+                'bb_lower': float(last_row['bb_lower']),
+                'williams_r': float(last_row['williams_r']),
+                'stoch_k': float(last_row['stoch_k']),
+                'stoch_d': float(last_row['stoch_d']),
+                'signal_type': signal_type if signal_type else 'HOLD',
+                'entry_price': float(last_row['close']),
+            }
+            
+            # Si un signal a été généré
+            if signal_type:
+                # Récupérer ou créer la stratégie
+                strategy, _ = Strategy.objects.get_or_create(
+                    name=f"Combined BB-Williams-Stoch Strategy",
+                    defaults={'description': "Combined strategy using Bollinger Bands, Williams %R, and Stochastic Oscillator"}
+                )
+                
+                pair = CurrencyPair.objects.get(symbol=pair_symbol)
+                
+                # Calculer les niveaux de stop loss et take profit
+                atr = TechnicalIndicators.calculate_atr(
+                    df['high'], df['low'], df['close'], period=14
+                ).iloc[-1]
+                
+                if signal_type == 'BUY':
+                    stop_loss = last_row['close'] - (atr * 2)
+                    take_profit = last_row['close'] + (atr * 3)
+                else:  # SELL
+                    stop_loss = last_row['close'] + (atr * 2)
+                    take_profit = last_row['close'] - (atr * 3)
+                
+                # Calculer la confiance (basée sur la force du signal)
+                if signal_type == 'BUY':
+                    # Facteurs contribuant à la confiance:
+                    # 1. Distance du prix par rapport à la bande inférieure
+                    bb_factor = min(1.0, max(0, (last_row['bb_lower'] - last_row['close']) / atr))
+                    
+                    # 2. Profondeur du Williams %R sous -80
+                    williams_factor = min(1.0, max(0, (williams_oversold - last_row['williams_r']) / 20))
+                    
+                    # 3. Distance du Stochastique par rapport au niveau 20
+                    stoch_factor = min(1.0, max(0, (stoch_oversold - last_row['stoch_k']) / 20))
+                    
+                    # Moyenne pondérée des facteurs
+                    confidence = min(0.95, max(0.7, (bb_factor * 0.4 + williams_factor * 0.3 + stoch_factor * 0.3)))
+                    
+                else:  # SELL
+                    # Facteurs contribuant à la confiance:
+                    # 1. Distance du prix par rapport à la bande supérieure
+                    bb_factor = min(1.0, max(0, (last_row['close'] - last_row['bb_upper']) / atr))
+                    
+                    # 2. Hauteur du Williams %R au-dessus de -20
+                    williams_factor = min(1.0, max(0, (last_row['williams_r'] - williams_overbought) / 20))
+                    
+                    # 3. Distance du Stochastique par rapport au niveau 80
+                    stoch_factor = min(1.0, max(0, (last_row['stoch_k'] - stoch_overbought) / 20))
+                    
+                    # Moyenne pondérée des facteurs
+                    confidence = min(0.95, max(0.7, (bb_factor * 0.4 + williams_factor * 0.3 + stoch_factor * 0.3)))
+                
+                # Créer le signal
+                signal = Signal.objects.create(
+                    pair=pair,
+                    strategy=strategy,
+                    signal_type=signal_type,
+                    timeframe=timeframe,
+                    entry_price=last_row['close'],
+                    stop_loss=stop_loss,
+                    take_profit=take_profit,
+                    confidence=confidence,
+                    timestamp=timezone.now(),
+                    expiration=timezone.now() + timedelta(days=1),
+                    notes=f"Signal generated by Combined BB-Williams-Stoch Strategy: BB ({last_row['close']:.4f} vs {last_row['bb_lower']:.4f}/{last_row['bb_upper']:.4f}), Williams %R ({last_row['williams_r']:.2f}), Stoch %K/D ({last_row['stoch_k']:.2f}/{last_row['stoch_d']:.2f})"
+                )
+                
+                # Ajouter les informations du signal au résultat
+                result.update({
+                    'signal_id': signal.id,
+                    'stop_loss': float(stop_loss),
+                    'take_profit': float(take_profit),
+                    'confidence': confidence,
+                    'timestamp': signal.timestamp
+                })
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error generating combined strategy signals: {str(e)}")
+            return None

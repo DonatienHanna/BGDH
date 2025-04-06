@@ -227,16 +227,19 @@ LOGGING = {
 from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE.update({
-    'generate-bollinger-bands-signals': {
-        'task': 'signals.tasks.generate_bollinger_bands_signals_task',
-        'schedule': crontab(minute='*/20'),  # Toutes les 20 minutes
-    },
-    'generate-williams-r-signals': {
-        'task': 'signals.tasks.generate_williams_r_signals_task',
+    'generate-combined-strategy-1h': {
+        'task': 'signals.tasks.generate_combined_strategy_signals_task',
         'schedule': crontab(minute='*/15'),  # Toutes les 15 minutes
+        'args': (None, '1h'),  # Tous les pairs, timeframe 1h
     },
-    'generate-stochastic-signals': {
-        'task': 'signals.tasks.generate_stochastic_signals_task',
-        'schedule': crontab(minute='*/25'),  # Toutes les 25 minutes
+    'generate-combined-strategy-4h': {
+        'task': 'signals.tasks.generate_combined_strategy_signals_task',
+        'schedule': crontab(minute='5', hour='*/4'),  # Toutes les 4 heures à XX:05
+        'args': (None, '4h'),  # Tous les pairs, timeframe 4h
+    },
+    'generate-combined-strategy-1d': {
+        'task': 'signals.tasks.generate_combined_strategy_signals_task',
+        'schedule': crontab(minute='15', hour='0'),  # Tous les jours à 00:15
+        'args': (None, '1d'),  # Tous les pairs, timeframe 1d
     },
 })

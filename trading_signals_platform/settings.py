@@ -9,12 +9,20 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+# Importez ces modules au début du fichier:
+import environ
+import os
+
+env = environ.Env()
 
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Lire le fichier .env si existant
+# BASE_DIR est déjà défini dans le settings.py
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -85,11 +93,11 @@ WSGI_APPLICATION = 'trading_signals_platform.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'trading_signals_db',
-        'USER': 'postgres',  # Remplacez par votre nom d'utilisateur PostgreSQL
-        'PASSWORD': 'votre_mot_de_passe',  # Remplacez par votre mot de passe PostgreSQL
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': env('DB_NAME', default='trading_signals_db'),
+        'USER': env('DB_USER', default='trading_user'),
+        'PASSWORD': env('DB_PASSWORD', default='your_password'),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='5432'),
     }
 }
 
@@ -158,7 +166,7 @@ INSTALLED_APPS = [
     # ... vos applications
 ]
 
-# Celery settings
+# Configurations Celery
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
@@ -169,11 +177,19 @@ CELERY_TIMEZONE = 'UTC'
 # Celery Beat settings
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
+# Ensuite vous pouvez mettre à jour CELERY_BEAT_SCHEDULE
+CELERY_BEAT_SCHEDULE.update({
+    # Vos tâches planifiées ici
+})
+
+# Initialisez CELERY_BEAT_SCHEDULE avant de l'utiliser
+CELERY_BEAT_SCHEDULE = {}
+
 # Ajoutez django_celery_beat à vos applications installées
 INSTALLED_APPS += ['django_celery_beat']
 
 # Clé API Alpha Vantage
-ALPHA_VANTAGE_API_KEY = 'votre_clé_api'  # Remplacez par votre clé API Alpha Vantage
+ALPHA_VANTAGE_API_KEY = env('ALPHA_VANTAGE_API_KEY', default='073XRZ4KX6ENI78E')
 
 # Logging configuration
 LOGGING = {

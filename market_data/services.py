@@ -5,7 +5,7 @@ from django.conf import settings
 from .models import Currency, CurrencyPair, PriceData
 
 # Clé API Alpha Vantage (à configurer dans settings.py)
-API_KEY = getattr(settings, 'ALPHA_VANTAGE_API_KEY', 'votre_clé_api')
+API_KEY = getattr(settings, 'ALPHA_VANTAGE_API_KEY', '073XRZ4KX6ENI78E')
 
 class MarketDataService:
     """Service pour récupérer les données de marché depuis Alpha Vantage"""

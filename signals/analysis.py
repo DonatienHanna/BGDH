@@ -1,43 +1,36 @@
-# signals/analysis.py
-# Conservons les importations et autres fonctions existantes et ajoutons/modifions les indicateurs demandés
+import pandas as pd
+from datetime import timedelta
+from django.utils import timezone
+from market_data.models import CurrencyPair, PriceData
+from signals.models import Strategy, Signal  # Ajout de cet import
 
 class TechnicalIndicators:
     """Classe utilitaire pour calculer des indicateurs techniques"""
     
-    # Conservons les méthodes existantes (calculate_sma, calculate_ema, calculate_rsi, calculate_macd, calculate_atr)
+    @staticmethod
+    def calculate_sma(prices, period=20):
+        """Calcule la moyenne mobile simple (SMA)"""
+        return prices.rolling(window=period).mean()
     
     @staticmethod
-    def calculate_bollinger_bands(prices, period=27, deviation=2.7, shift=0):
-        """
-        Calcule les bandes de Bollinger avec paramètres personnalisés
+    def calculate_ema(prices, period=20):
+        """Calcule la moyenne mobile exponentielle (EMA)"""
+        return prices.ewm(span=period, adjust=False).mean()
+    
+    @staticmethod
+    def calculate_atr(high, low, close, period=14):
+        """Calcule l'ATR (Average True Range)"""
+        previous_close = close.shift(1)
+        tr1 = high - low
+        tr2 = (high - previous_close).abs()
+        tr3 = (low - previous_close).abs()
         
-        Args:
-            prices (pd.Series): Série de prix
-            period (int): Période pour le calcul de la moyenne mobile (défaut: 27)
-            deviation (float): Facteur de déviation standard (défaut: 2.7)
-            shift (int): Décalage de la moyenne mobile (défaut: 0)
+        tr = pd.DataFrame({'tr1': tr1, 'tr2': tr2, 'tr3': tr3}).max(axis=1)
+        atr = tr.rolling(window=period).mean()
         
-        Returns:
-            dict: Dictionnaire contenant les bandes supérieure, moyenne et inférieure
-        """
-        # Calculer la moyenne mobile
-        if shift == 0:
-            middle_band = prices.rolling(window=period).mean()
-        else:
-            middle_band = prices.rolling(window=period).mean().shift(shift)
-        
-        # Calculer l'écart-type
-        std = prices.rolling(window=period).std()
-        
-        # Calculer les bandes supérieure et inférieure
-        upper_band = middle_band + (std * deviation)
-        lower_band = middle_band - (std * deviation)
-        
-        return {
-            'middle_band': middle_band,
-            'upper_band': upper_band,
-            'lower_band': lower_band
-        }
+        return atr
+    
+    # Vos autres méthodes d'indicateurs techniques existantes...
     
     @staticmethod
     def calculate_williams_r(high, low, close, period=75):
@@ -102,7 +95,61 @@ class TechnicalIndicators:
         }
         
 class SignalGenerator:
-    # Conservons les méthodes existantes (get_price_data, etc.)
+    
+    @staticmethod
+    def get_price_data(pair_symbol, timeframe='1h', limit=200):
+        """
+        Récupère les données de prix pour une paire et un timeframe spécifiques
+        
+        Args:
+            pair_symbol (str): Symbole de la paire (ex: XAUUSD)
+            timeframe (str): Timeframe des données
+            limit (int): Nombre de points de données à récupérer
+        
+        Returns:
+            pd.DataFrame: DataFrame avec les données OHLCV
+        """
+        try:
+            # Récupérer l'objet CurrencyPair
+            try:
+                pair = CurrencyPair.objects.get(symbol=pair_symbol)
+            except CurrencyPair.DoesNotExist:
+                print(f"Currency pair {pair_symbol} not found")
+                return None
+            
+            # Récupérer les données de prix
+            price_data = PriceData.objects.filter(
+                pair=pair
+            ).order_by('-timestamp')[:limit]
+            
+            if not price_data:
+                print(f"No price data found for {pair_symbol}")
+                return None
+            
+            # Convertir en DataFrame
+            data = pd.DataFrame(list(price_data.values(
+                'timestamp', 'open_price', 'high_price', 'low_price', 'close_price', 'volume'
+            )))
+            
+            # Renommer les colonnes
+            data = data.rename(columns={
+                'open_price': 'open',
+                'high_price': 'high',
+                'low_price': 'low',
+                'close_price': 'close'
+            })
+            
+            # Trier par timestamp croissant
+            data = data.sort_values('timestamp')
+            
+            # Définir timestamp comme index
+            data.set_index('timestamp', inplace=True)
+            
+            return data
+            
+        except Exception as e:
+            print(f"Error fetching price data: {str(e)}")
+            return None
     
     @staticmethod
     def generate_bollinger_bands_signals(pair_symbol, period=27, deviation=2.7, shift=0):

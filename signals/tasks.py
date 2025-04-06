@@ -1,4 +1,8 @@
 # signals/tasks.py
+from celery import shared_task
+from market_data.models import CurrencyPair
+from .analysis import SignalGenerator  # Assurez-vous que ce fichier existe
+
 @shared_task
 def generate_bollinger_bands_signals_task(pair_symbol=None):
     """

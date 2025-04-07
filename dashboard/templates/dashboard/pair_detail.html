@@ -182,6 +182,9 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Variables pour stocker les instances des graphiques
+        let priceChart, bollingerChart, williamsChart, stochasticChart, combinedChart;
+        
         // Configuration des boutons de timeframe
         const timeframeBtns = document.querySelectorAll('.timeframe-btn');
         timeframeBtns.forEach(btn => {
@@ -191,10 +194,10 @@
                 loadChartData(this.dataset.timeframe);
             });
         });
-
+    
         // Charger les données initiales
         loadChartData('1d');
-
+    
         function loadChartData(timeframe) {
             fetch(`{% url "api_pair_chart_data" pair.id %}?timeframe=${timeframe}`)
                 .then(response => response.json())
@@ -204,29 +207,361 @@
                     updateWilliamsChart(data.williams_data);
                     updateStochasticChart(data.stochastic_data);
                     updateCombinedChart(data.combined_data);
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des données:', error);
                 });
         }
-
+    
         // Fonctions de mise à jour des graphiques
         function updatePriceChart(data) {
-            // Implémentation pour mettre à jour le graphique des prix
+            if (!data) return;
+            
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            // Détruire le graphique existant si présent
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            // Créer le nouveau graphique
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.timestamps,
+                    datasets: [{
+                        label: 'Prix',
+                        data: data.close,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Évolution du prix'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Prix'
+                            }
+                        }
+                    }
+                }
+            });
         }
-
+    
         function updateBollingerChart(data) {
-            // Implémentation pour mettre à jour le graphique Bollinger
+            if (!data) return;
+            
+            const ctx = document.getElementById('bollingerChart').getContext('2d');
+            
+            // Détruire le graphique existant si présent
+            if (bollingerChart) {
+                bollingerChart.destroy();
+            }
+            
+            // Créer le nouveau graphique
+            bollingerChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.timestamps,
+                    datasets: [
+                        {
+                            label: 'Prix',
+                            data: data.close,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: 'Bande supérieure',
+                            data: data.upper,
+                            borderColor: 'rgba(255, 99, 132, 0.8)',
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: 'Bande moyenne',
+                            data: data.middle,
+                            borderColor: 'rgba(54, 162, 235, 0.8)',
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: 'Bande inférieure',
+                            data: data.lower,
+                            borderColor: 'rgba(255, 206, 86, 0.8)',
+                            tension: 0.1,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Bandes de Bollinger (27, 2.7, 0)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Prix'
+                            }
+                        }
+                    }
+                }
+            });
         }
-
+    
         function updateWilliamsChart(data) {
-            // Implémentation pour mettre à jour le graphique Williams %R
+            if (!data) return;
+            
+            const ctx = document.getElementById('williamsChart').getContext('2d');
+            
+            // Détruire le graphique existant si présent
+            if (williamsChart) {
+                williamsChart.destroy();
+            }
+            
+            // Créer le nouveau graphique
+            williamsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.timestamps,
+                    datasets: [
+                        {
+                            label: 'Williams %R',
+                            data: data.williams_r,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: 'Niveau de surachat (-20)',
+                            data: data.overbought,
+                            borderColor: 'rgba(255, 99, 132, 0.8)',
+                            borderDash: [5, 5],
+                            tension: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'Niveau de survente (-80)',
+                            data: data.oversold,
+                            borderColor: 'rgba(54, 162, 235, 0.8)',
+                            borderDash: [5, 5],
+                            tension: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Williams %R (75)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Valeur'
+                            },
+                            min: -100,
+                            max: 0
+                        }
+                    }
+                }
+            });
         }
-
+    
         function updateStochasticChart(data) {
-            // Implémentation pour mettre à jour le graphique Stochastique
+            if (!data) return;
+            
+            const ctx = document.getElementById('stochasticChart').getContext('2d');
+            
+            // Détruire le graphique existant si présent
+            if (stochasticChart) {
+                stochasticChart.destroy();
+            }
+            
+            // Créer le nouveau graphique
+            stochasticChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.timestamps,
+                    datasets: [
+                        {
+                            label: '%K',
+                            data: data.k,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: '%D',
+                            data: data.d,
+                            borderColor: 'rgba(255, 99, 132, 0.8)',
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: 'Niveau de surachat (80)',
+                            data: data.overbought,
+                            borderColor: 'rgba(255, 159, 64, 0.8)',
+                            borderDash: [5, 5],
+                            tension: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'Niveau de survente (20)',
+                            data: data.oversold,
+                            borderColor: 'rgba(54, 162, 235, 0.8)',
+                            borderDash: [5, 5],
+                            tension: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Stochastique (40/20/15)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Valeur'
+                            },
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
         }
-
+    
         function updateCombinedChart(data) {
-            // Implémentation pour mettre à jour le graphique combiné
+            if (!data) return;
+            
+            const ctx = document.getElementById('combinedChart').getContext('2d');
+            
+            // Détruire le graphique existant si présent
+            if (combinedChart) {
+                combinedChart.destroy();
+            }
+            
+            // Créer le nouveau graphique - Exemple simple montrant les signaux
+            combinedChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.timestamps,
+                    datasets: [
+                        {
+                            label: 'Prix',
+                            data: data.close,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Signaux d\'achat',
+                            data: data.buy_signals,
+                            borderColor: 'rgba(75, 192, 75, 1)',
+                            backgroundColor: 'rgba(75, 192, 75, 0.5)',
+                            pointRadius: 6,
+                            pointStyle: 'triangle',
+                            showLine: false,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Signaux de vente',
+                            data: data.sell_signals,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                            pointRadius: 6,
+                            pointStyle: 'triangle',
+                            showLine: false,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Stratégie combinée'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Prix'
+                            }
+                        }
+                    }
+                }
+            });
         }
     });
-</script>
+    </script>
 {% endblock %}

@@ -1,0 +1,205 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{{ strategy.name }} - Détail{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2>{{ strategy.name }} - Analyse détaillée</h2>
+            <p class="text-muted">{{ strategy.description }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Derniers signaux générés</h5>
+                </div>
+                <div class="card-body">
+                    {% if latest_signals %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Paire</th>
+                                        <th>Signal</th>
+                                        <th>Prix d'entrée</th>
+                                        <th>Stop Loss</th>
+                                        <th>Take Profit</th>
+                                        <th>Timeframe</th>
+                                        <th>Confiance</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for signal in latest_signals %}
+                                        <tr class="signal-{{ signal.signal_type|lower }}">
+                                            <td>{{ signal.pair.symbol }}</td>
+                                            <td>
+                                                {% if signal.signal_type == 'BUY' %}
+                                                    <span class="badge bg-success">Achat</span>
+                                                {% elif signal.signal_type == 'SELL' %}
+                                                    <span class="badge bg-danger">Vente</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Attente</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ signal.entry_price|floatformat:4 }}</td>
+                                            <td>{{ signal.stop_loss|floatformat:4 }}</td>
+                                            <td>{{ signal.take_profit|floatformat:4 }}</td>
+                                            <td>{{ signal.get_timeframe_display }}</td>
+                                            <td>
+                                                {% if signal.confidence >= 0.8 %}
+                                                    <span class="confidence-high">{{ signal.confidence|floatformat:2 }}</span>
+                                                {% elif signal.confidence >= 0.6 %}
+                                                    <span class="confidence-medium">{{ signal.confidence|floatformat:2 }}</span>
+                                                {% else %}
+                                                    <span class="confidence-low">{{ signal.confidence|floatformat:2 }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ signal.timestamp|date:"d/m/Y H:i" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p>Aucun signal n'a encore été généré par cette stratégie.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>Performance par paire</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="signalsDistributionChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Statistiques</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th>Signaux totaux</th>
+                                <td>{{ total_signals }}</td>
+                            </tr>
+                            <tr>
+                                <th>Signaux d'achat</th>
+                                <td>{{ buy_signals }}</td>
+                            </tr>
+                            <tr>
+                                <th>Signaux de vente</th>
+                                <td>{{ sell_signals }}</td>
+                            </tr>
+                            <tr>
+                                <th>Confiance moyenne</th>
+                                {% if avg_confidence %}
+                                    {{ avg_confidence|floatformat:2 }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>Distribution par paire</h5>
+                </div>
+                <div class="card-body">
+                    {% if signals_by_pair %}
+                        <ul class="list-group">
+                            {% for item in signals_by_pair %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ item.pair__symbol }}
+                                    <span class="badge bg-primary rounded-pill">{{ item.count }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Aucune donnée disponible.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique de distribution des signaux
+    const distributionCtx = document.getElementById('signalsDistributionChart').getContext('2d');
+    
+    // Données pour le graphique
+    const signalsByPair = [
+        {% for item in signals_by_pair %}
+            {
+                pair: "{{ item.pair__symbol }}",
+                count: {{ item.count }}
+            }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    if (signalsByPair.length > 0) {
+        const distributionChart = new Chart(distributionCtx, {
+            type: 'bar',
+            data: {
+                labels: signalsByPair.map(item => item.pair),
+                datasets: [{
+                    label: 'Nombre de signaux',
+                    data: signalsByPair.map(item => item.count),
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribution des signaux par paire'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

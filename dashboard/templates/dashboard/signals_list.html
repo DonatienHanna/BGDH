@@ -1,0 +1,129 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Signaux - Système d'Analyse et de Signaux de Trading{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2>Liste des signaux</h2>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Filtres</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-2">
+                            <label for="pair" class="form-label">Paire</label>
+                            <select class="form-select" id="pair" name="pair">
+                                <option value="">Toutes</option>
+                                {% for p in pairs %}
+                                    <option value="{{ p.id }}" {% if selected_pair == p.id|stringformat:"s" %}selected{% endif %}>{{ p.symbol }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="strategy" class="form-label">Stratégie</label>
+                            <select class="form-select" id="strategy" name="strategy">
+                                <option value="">Toutes</option>
+                                {% for s in strategies %}
+                                    <option value="{{ s.id }}" {% if selected_strategy == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="type" class="form-label">Type</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="">Tous</option>
+                                <option value="BUY" {% if selected_type == 'BUY' %}selected{% endif %}>Achat</option>
+                                <option value="SELL" {% if selected_type == 'SELL' %}selected{% endif %}>Vente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="days" class="form-label">Période</label>
+                            <select class="form-select" id="days" name="days">
+                                <option value="1" {% if selected_days == '1' %}selected{% endif %}>1 jour</option>
+                                <option value="7" {% if selected_days == '7' %}selected{% endif %}>7 jours</option>
+                                <option value="30" {% if selected_days == '30' %}selected{% endif %}>30 jours</option>
+                                <option value="90" {% if selected_days == '90' %}selected{% endif %}>90 jours</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary mb-3">Filtrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Signaux ({{ signals|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if signals %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Paire</th>
+                                        <th>Signal</th>
+                                        <th>Stratégie</th>
+                                        <th>Prix d'entrée</th>
+                                        <th>Stop Loss</th>
+                                        <th>Take Profit</th>
+                                        <th>Timeframe</th>
+                                        <th>Confiance</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for signal in signals %}
+                                        <tr class="signal-{{ signal.signal_type|lower }}">
+                                            <td>{{ signal.pair.symbol }}</td>
+                                            <td>
+                                                {% if signal.signal_type == 'BUY' %}
+                                                    <span class="badge bg-success">Achat</span>
+                                                {% elif signal.signal_type == 'SELL' %}
+                                                    <span class="badge bg-danger">Vente</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Attente</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ signal.strategy.name }}</td>
+                                            <td>{{ signal.entry_price|floatformat:4 }}</td>
+                                            <td>{{ signal.stop_loss|floatformat:4 }}</td>
+                                            <td>{{ signal.take_profit|floatformat:4 }}</td>
+                                            <td>{{ signal.get_timeframe_display }}</td>
+                                            <td>
+                                                {% if signal.confidence >= 0.8 %}
+                                                    <span class="confidence-high">{{ signal.confidence|floatformat:2 }}</span>
+                                                {% elif signal.confidence >= 0.6 %}
+                                                    <span class="confidence-medium">{{ signal.confidence|floatformat:2 }}</span>
+                                                {% else %}
+                                                    <span class="confidence-low">{{ signal.confidence|floatformat:2 }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ signal.timestamp|date:"d/m/Y H:i" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p>Aucun signal trouvé avec les critères sélectionnés.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -30,7 +30,41 @@ class TechnicalIndicators:
         
         return atr
     
-    # Vos autres méthodes d'indicateurs techniques existantes...
+    @staticmethod
+    def calculate_bollinger_bands(prices, period=27, deviation=2.7, shift=0):
+        """
+        Calcule les bandes de Bollinger avec paramètres personnalisés
+        
+        Args:
+            prices (pd.Series): Série de prix
+            period (int): Période pour le calcul de la moyenne mobile (défaut: 27)
+            deviation (float): Facteur de déviation standard (défaut: 2.7)
+            shift (int): Décalage de la moyenne mobile (défaut: 0)
+        
+        Returns:
+            dict: Dictionnaire contenant les bandes supérieure, moyenne et inférieure
+        """
+        # Convertir en float pour éviter les problèmes de type
+        prices = prices.astype(float)
+        
+        # Calculer la moyenne mobile
+        if shift == 0:
+            middle_band = prices.rolling(window=period).mean()
+        else:
+            middle_band = prices.rolling(window=period).mean().shift(shift)
+        
+        # Calculer l'écart-type
+        std = prices.rolling(window=period).std()
+        
+        # Calculer les bandes supérieure et inférieure
+        upper_band = middle_band + (std * deviation)
+        lower_band = middle_band - (std * deviation)
+        
+        return {
+            'middle_band': middle_band,
+            'upper_band': upper_band,
+            'lower_band': lower_band
+        }
     
     @staticmethod
     def calculate_williams_r(high, low, close, period=75):

@@ -34,26 +34,14 @@ class TechnicalIndicators:
     
     @staticmethod
     def calculate_williams_r(high, low, close, period=75):
-        """
-        Calcule l'indicateur Williams %R
-        
-        Args:
-            high (pd.Series): Série des prix les plus hauts
-            low (pd.Series): Série des prix les plus bas
-            close (pd.Series): Série des prix de clôture
-            period (int): Période pour le calcul (défaut: 75)
-        
-        Returns:
-            pd.Series: Série contenant les valeurs de Williams %R
-        """
-        # Plus haut sur la période
-        highest_high = high.rolling(window=period).max()
-        
-        # Plus bas sur la période
-        lowest_low = low.rolling(window=period).min()
+        # Convertir en float si nécessaire
+        high = high.astype(float) if hasattr(high, 'astype') else high
+        low = low.astype(float) if hasattr(low, 'astype') else low
+        close = close.astype(float) if hasattr(close, 'astype') else close
         
         # Calcul du Williams %R
-        # La formule est: %R = -100 * (highest_high - close) / (highest_high - lowest_low)
+        highest_high = high.rolling(window=period).max()
+        lowest_low = low.rolling(window=period).min()
         williams_r = -100 * (highest_high - close) / (highest_high - lowest_low)
         
         return williams_r
@@ -138,6 +126,9 @@ class SignalGenerator:
                 'low_price': 'low',
                 'close_price': 'close'
             })
+            
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                data[col] = data[col].astype(float)
             
             # Trier par timestamp croissant
             data = data.sort_values('timestamp')

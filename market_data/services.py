@@ -4,12 +4,14 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from .models import Currency, CurrencyPair, PriceData
 
-# Clé API Alpha Vantage (à configurer dans settings.py)
 API_KEY = getattr(settings, 'ALPHA_VANTAGE_API_KEY', '073XRZ4KX6ENI78E')
 
 class MarketDataService:
     """Service pour récupérer les données de marché depuis Alpha Vantage"""
     
+    #here 
+        #comments here
+    # market_data/services.py
     @staticmethod
     def fetch_forex_data(symbol, interval='1h', outputsize='compact'):
         """
@@ -30,25 +32,27 @@ class MarketDataService:
         }
         av_interval = av_interval_map.get(interval, '60min')
         
-        # Construire l'URL de l'API
-        function = 'FX_INTRADAY' if av_interval != 'daily' else 'FX_DAILY'
+        # Extraire les symboles from/to
         from_symbol, to_symbol = symbol[:3], symbol[3:]
         
-        url = f'https://www.alphavantage.co/query'
-        params = {
-            'function': function,
-            'from_symbol': from_symbol,
-            'to_symbol': to_symbol,
-            'interval': av_interval if function == 'FX_INTRADAY' else None,
-            'outputsize': outputsize,
-            'apikey': API_KEY
-        }
+        # Déterminer la fonction API appropriée
+        if interval in ['1d', '1day', 'daily']:
+            function = 'FX_DAILY'
+            url = f'https://www.alphavantage.co/query?function={function}&from_symbol={from_symbol}&to_symbol={to_symbol}&outputsize={outputsize}&apikey={API_KEY}'
+        elif interval in ['1w', '1week', 'weekly']:
+            function = 'FX_WEEKLY'
+            url = f'https://www.alphavantage.co/query?function={function}&from_symbol={from_symbol}&to_symbol={to_symbol}&apikey={API_KEY}'
+        elif interval in ['1mo', '1month', 'monthly']:
+            function = 'FX_MONTHLY'
+            url = f'https://www.alphavantage.co/query?function={function}&from_symbol={from_symbol}&to_symbol={to_symbol}&apikey={API_KEY}'
+        else:
+            function = 'FX_INTRADAY'
+            url = f'https://www.alphavantage.co/query?function={function}&from_symbol={from_symbol}&to_symbol={to_symbol}&interval={av_interval}&outputsize={outputsize}&apikey={API_KEY}'
         
-        # Filtrer les paramètres None
-        params = {k: v for k, v in params.items() if v is not None}
+        print(f"Requesting data from: {url}")
         
         try:
-            response = requests.get(url, params=params)
+            response = requests.get(url)
             data = response.json()
             
             # Vérifier s'il y a une erreur dans la réponse
@@ -56,10 +60,22 @@ class MarketDataService:
                 print(f"API Error: {data['Error Message']}")
                 return None
             
+            if 'Information' in data:
+                print(f"API Info: {data['Information']}")
+                # Si c'est un message concernant la limite d'appels API, retourner None
+                if 'call frequency' in data['Information']:
+                    return None
+            
             # Extraire les données de séries temporelles
-            time_series_key = next((k for k in data.keys() if 'Time Series' in k), None)
+            time_series_key = None
+            for key in data.keys():
+                if 'Time Series' in key:
+                    time_series_key = key
+                    break
+            
             if not time_series_key or not data.get(time_series_key):
                 print("No time series data found in response")
+                print(f"Response keys: {data.keys()}")
                 return None
             
             time_series = data[time_series_key]
@@ -67,19 +83,27 @@ class MarketDataService:
             # Convertir en DataFrame
             df = pd.DataFrame.from_dict(time_series, orient='index')
             
+            # Identifier les noms de colonnes (ils peuvent varier)
+            column_mapping = {}
+            for col in df.columns:
+                if 'open' in col.lower():
+                    column_mapping[col] = 'open'
+                elif 'high' in col.lower():
+                    column_mapping[col] = 'high'
+                elif 'low' in col.lower():
+                    column_mapping[col] = 'low'
+                elif 'close' in col.lower():
+                    column_mapping[col] = 'close'
+                elif 'volume' in col.lower():
+                    column_mapping[col] = 'volume'
+            
             # Renommer les colonnes
-            column_mapping = {
-                '1. open': 'open',
-                '2. high': 'high',
-                '3. low': 'low',
-                '4. close': 'close',
-                '5. volume': 'volume'
-            }
             df = df.rename(columns=column_mapping)
             
             # Convertir les types de données
             for col in ['open', 'high', 'low', 'close']:
-                df[col] = pd.to_numeric(df[col])
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col])
             
             # Si volume existe (certaines API forex n'ont pas de volume)
             if 'volume' in df.columns:

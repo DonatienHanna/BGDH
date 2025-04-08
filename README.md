@@ -54,12 +54,12 @@ pip install -r requirements.txt
 4. Créez un fichier `.env` à la racine du projet :
 ```
 DB_NAME=trading_signals_db
-DB_USER=trading_user
-DB_PASSWORD=your_password
+DB_USER=user
+DB_PASSWORD=user123
 DB_HOST=localhost
 DB_PORT=5432
-SECRET_KEY=your_django_secret_key
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key
+SECRET_KEY=django-insecure-)q9pkf6!ki!#u4h5djnrtp7)f(=29brqxys8p@_om^puqq5cek
+ALPHA_VANTAGE_API_KEY=073XRZ4KX6ENI78E
 ```
 
 Le fichier setup_postgres.sh se charge de la configuration de la base de données et de la table nécessaire au fonctionnement du projet.

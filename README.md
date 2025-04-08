@@ -4,9 +4,13 @@ Un système d'analyse technique et de génération de signaux de trading basé s
 
 ## BG-DH
 
+<!-- ton message -->
+
 ## Vue d'ensemble
 
 Le SAST est une application web qui collecte des données de marché Forex en temps réel, applique des indicateurs techniques personnalisés et génère des signaux de trading selon différentes stratégies. L'application offre un tableau de bord interactif permettant de visualiser les données de marché, les indicateurs techniques et les signaux générés.
+
+<!-- Photo à mettre si t'en as -->
 
 ## Fonctionnalités
 
@@ -31,21 +35,24 @@ Le SAST est une application web qui collecte des données de marché Forex en te
 ### Configuration
 
 1. Clonez le dépôt :
-`bash`
+```bash
 git clone https://github.com/DonatienHanna/BGDH.git
 cd BGDH
+```
 
 2. Créez et activez un environnement virtuel :
-`bash`
+```bash
 python -m venv venv
 source venv/bin/activate  # Sur Windows: venv\Scripts\activate
+```
 
 3. Installez les dépendances :
-`bash`
+```bash
 pip install -r requirements.txt
+```
 
 4. Créez un fichier `.env` à la racine du projet :
-
+```
 DB_NAME=trading_signals_db
 DB_USER=trading_user
 DB_PASSWORD=your_password
@@ -53,35 +60,42 @@ DB_HOST=localhost
 DB_PORT=5432
 SECRET_KEY=your_django_secret_key
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key
+```
 
 Le fichier setup_postgres.sh se charge de la configuration de la base de données et de la table nécessaire au fonctionnement du projet.
 Cependant, vous devez vérifier que postgresql est bien installé sur votre ordinateur et si l'utilisateur et le mot de passe associés existent et sont corrects (dans le .env).
 
 5. Configurez la base de données PostgreSQL :
-`bash`
+```bash
 bash setup_postgres.sh
+```
 
 ## Démarrage
 
 1. Appliquez les migrations :
-`bash`
+```bash
 python manage.py migrate
+```
 
 2. Créez un superutilisateur :
-`bash`
+```bash
 python manage.py createsuperuser
+```
 
 3. Démarrez le serveur Django :
-`bash`
+```bash
 python manage.py runserver
+```
 
 4. Démarrez le worker Celery (dans un nouveau terminal) :
-`bash`
+```bash
 celery -A trading_signals_platform worker --loglevel=info
+```
 
 5. Démarrez le planificateur Celery Beat (dans un autre terminal) :
-`bash`
+```bash
 celery -A trading_signals_platform beat --loglevel=info
+```
 
 6. Accédez à l'application via http://localhost:8000/
 
@@ -91,17 +105,19 @@ celery -A trading_signals_platform beat --loglevel=info
 
 Pour obtenir des données historiques pour une paire de devises :
 
-`python`
+```python
 from market_data.tasks import update_forex_data_task
 update_forex_data_task('EURUSD', '1d')  # Pour des données quotidiennes
+```
 
 ### Génération de signaux
 
 Pour générer des signaux avec la stratégie combinée :
 
-`python`
+```python
 from signals.tasks import generate_combined_strategy_signals_task
 generate_combined_strategy_signals_task('EURUSD', '1h')
+```
 
 ### Interface d'administration
 
@@ -109,17 +125,17 @@ Accédez à l'interface d'administration via http://localhost:8000/admin/ pour g
 
 ## Structure du projet
 
-
+```
 BGDH/
-/trading_signals_platform/  # Configuration du projet Django
-/market_data/              # Gestion des données de marché
-/signals/                  # Génération et gestion des signaux
-/users/                    # Gestion des utilisateurs
-/dashboard/                # Interface utilisateur
-/manage.py                 # Script de gestion Django
-/setup_postgres.sh         # Script de configuration de PostgreSQL
-/start_services.sh         # Script de démarrage des services
-`
+├── trading_signals_platform/  # Configuration du projet Django
+├── market_data/              # Gestion des données de marché
+├── signals/                  # Génération et gestion des signaux
+├── users/                    # Gestion des utilisateurs
+├── dashboard/                # Interface utilisateur
+├── manage.py                 # Script de gestion Django
+├── setup_postgres.sh         # Script de configuration de PostgreSQL
+└── start_services.sh         # Script de démarrage des services
+```
 
 ## Indicateurs techniques
 
@@ -154,15 +170,15 @@ La stratégie principale combine les trois indicateurs pour générer des signau
 
 ## Développement futur
 
-Je souhaiterai améliorer quelques parties comme :
-- Améliorer de l'interface utilisateur
-- Ajouter de nouveaux indicateurs techniques
-- Intégrer de l'apprentissage automatique pour optimiser les signaux
-- Backtester des stratégies sur données historiques
+Le projet est en constante évolution, avec plusieurs fonctionnalités prévues :
+- Amélioration de l'interface utilisateur
+- Ajout de nouveaux indicateurs techniques
+- Intégration de l'apprentissage automatique pour optimiser les signaux
+- Backtesting des stratégies sur données historiques
 - Système de notifications par email
 
 ## Contact
 
-Donatien Hanna - [donyhanna45@gmail.com](mailto:donyhanna45@gmail.com)
+Donatien Hanna - [donatien.hanna@example.com](mailto:donatien.hanna@example.com)
 
 Project Link: [https://github.com/DonatienHanna/BGDH](https://github.com/DonatienHanna/BGDH)

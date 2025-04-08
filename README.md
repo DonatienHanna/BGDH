@@ -188,9 +188,21 @@ Cette partie permet de voir le nombre de singaux générés, daté, avec quelle 
 Par contre la fonctionnalité pour en savoir plus sur une paire ne fonctionne pas.
 
 
-
 ## Contact
 
 Donatien Hanna - [donyhanna45@gmail.com](mailto:donyhanna45@gmail.com)
 
 Project Link: [https://github.com/DonatienHanna/BGDH](https://github.com/DonatienHanna/BGDH)
+
+## Sources et références
+
+Ce projet a été développé grâce à de nombreuses ressources :
+- Reddit
+- GitHub
+- AlphaVantage (API)
+- Claude.ai
+- OpenClassrooms
+- YouTube
+- Documentation Django
+- Docstring
+- Numendo

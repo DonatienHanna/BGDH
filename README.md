@@ -179,6 +179,6 @@ Le projet est en constante évolution, avec plusieurs fonctionnalités prévues 
 
 ## Contact
 
-Donatien Hanna - [donatien.hanna@example.com](mailto:donatien.hanna@example.com)
+Donatien Hanna - [donyhanna45@gmail.com](mailto:donyhanna45@gmail.com)
 
 Project Link: [https://github.com/DonatienHanna/BGDH](https://github.com/DonatienHanna/BGDH)

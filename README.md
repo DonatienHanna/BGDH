@@ -175,7 +175,19 @@ Le projet est en constante évolution, avec plusieurs fonctionnalités prévues 
 - Ajout de nouveaux indicateurs techniques
 - Intégration de l'apprentissage automatique pour optimiser les signaux
 - Backtesting des stratégies sur données historiques
-- Système de notifications par email
+
+Pour aller plus loin :
+![Screen Site 1](https://github.com/user-attachments/assets/20cbe15c-9e32-4fa7-b7fb-cf2d0875b61a)![Screen site 2](https://github.com/user-attachments/assets/d826dba3-32d9-4715-98ab-1f54903de048)
+Voic deux screenshot lorsqu'on se connecte. 
+On voit les paires de devises les stratégies à droite.
+A gauche on peut voir les derniers signaux générés et les performances datées des paires juste en dessous.
+![Image Singaux de Trading](https://github.com/user-attachments/assets/bb7bd645-625c-42ff-a34a-ff2e044310b8)
+Sur cette image, nous pouvons voir les différents signaux qu'il nous a créé ( j'ai eu un problème en essayant d'implémenter ma stratégie triple indicateurs )
+![Image Signal William R](https://github.com/user-attachments/assets/846e58e4-92c8-4968-b2e4-757453d69644)
+Cette partie permet de voir le nombre de singaux générés, daté, avec quelle paire, et une statistique de confiance.
+Par contre la fonctionnalité pour en savoir plus sur une paire ne fonctionne pas.
+
+
 
 ## Contact
 
